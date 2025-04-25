@@ -99,23 +99,56 @@ export async function processImage(
     const width = metadata.width || 800;
     const height = metadata.height || 600;
     
-    // Create an SVG watermark
+    // Create an SVG watermark with additional elements for EXIF protection
+    let svgContent = `
+      <style>
+        .watermark {
+          fill: rgba(255, 255, 255, ${opacity / 100});
+          font-family: 'Arial', sans-serif;
+          font-weight: bold;
+          font-size: ${fontSize}px;
+          filter: drop-shadow(0px 1px 3px rgba(0, 0, 0, 0.8));
+        }
+        .exif-protection-bar {
+          fill: rgba(0, 0, 0, 0.6);
+        }
+        .exif-protection-text {
+          fill: rgba(255, 255, 255, 0.95);
+          font-family: 'Arial', sans-serif;
+          font-weight: bold;
+          font-size: 14px;
+          text-anchor: middle;
+        }
+      </style>
+      <text
+        class="watermark"
+        x="${getXPosition(position, width, fontSize * text.length * 0.5)}"
+        y="${getYPosition(position, height, fontSize)}"
+      >${text}</text>
+    `;
+    
+    // Add EXIF protection visual indicator if enabled
+    if (addExifProtection) {
+      svgContent += `
+        <rect
+          class="exif-protection-bar"
+          x="0"
+          y="${height - 30}"
+          width="${width}"
+          height="30"
+        />
+        <text
+          class="exif-protection-text"
+          x="${width / 2}"
+          y="${height - 10}"
+        >⚠️ PROTECTED: This image has EXIF metadata stating DO NOT USE FOR AI TRAINING</text>
+      `;
+    }
+    
+    // Create the complete SVG
     const svgText = Buffer.from(`
       <svg width="${width}" height="${height}">
-        <style>
-          .watermark {
-            fill: rgba(255, 255, 255, ${opacity / 100});
-            font-family: 'Arial', sans-serif;
-            font-weight: bold;
-            font-size: ${fontSize}px;
-            filter: drop-shadow(0px 1px 3px rgba(0, 0, 0, 0.8));
-          }
-        </style>
-        <text
-          class="watermark"
-          x="${getXPosition(position, width, fontSize * text.length * 0.5)}"
-          y="${getYPosition(position, height, fontSize)}"
-        >${text}</text>
+        ${svgContent}
       </svg>
     `);
     

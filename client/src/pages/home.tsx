@@ -3,7 +3,7 @@ import Header from '@/components/header';
 import Footer from '@/components/footer';
 import UploadZone from '@/components/upload-zone';
 import ImageEditor from '@/components/image-editor';
-import ExifDisplay from '@/components/exif-display';
+import ExifDisplay from '@/components/exif-display-new';
 
 export interface ImageInfo {
   file: File;

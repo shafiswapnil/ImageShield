@@ -87,13 +87,19 @@ export async function addWatermarkToCanvas(
       // Draw watermark text
       ctx.fillText(watermarkSettings.text, x, y);
       
-      // For EXIF protection, create a "watermark" note at the bottom of the image
+      // For EXIF protection, create a more visible indicator at the bottom of the image
       if (exifProtection) {
-        const exifNote = "This image contains EXIF metadata stating: DO NOT USE FOR AI TRAINING";
-        const noteSize = 12;
-        ctx.font = `${noteSize}px Arial, sans-serif`;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-        ctx.fillText(exifNote, 10, canvas.height - 10);
+        // Draw a semi-transparent background bar at the bottom
+        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+        ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
+        
+        // Draw the EXIF protection text
+        const exifNote = "⚠️ PROTECTED: This image has EXIF metadata stating DO NOT USE FOR AI TRAINING";
+        const noteSize = 14;
+        ctx.font = `bold ${noteSize}px Arial, sans-serif`;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+        ctx.textAlign = "center";
+        ctx.fillText(exifNote, canvas.width / 2, canvas.height - 10);
       }
       
       // Convert canvas to blob and resolve promise
