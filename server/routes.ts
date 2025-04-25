@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import path from "path";
 import fs from "fs";
-import { upload, processImage } from "./storage";
+import { upload, processImage, extractExifData } from "./storage";
 import multer from "multer";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -51,6 +51,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error processing image:', error);
       res.status(500).json({ message: 'Failed to process image' });
+    }
+  });
+
+  // API endpoint for extracting EXIF metadata from images
+  app.post('/api/extract-exif', upload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No image file provided' });
+      }
+
+      // Extract EXIF data from the image
+      const exifData = await extractExifData(req.file.path);
+      
+      // Clean up the uploaded file
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('Error cleaning up uploaded file:', err);
+      });
+      
+      res.json({ originalExif: exifData });
+    } catch (error) {
+      console.error('Error extracting EXIF data:', error);
+      res.status(500).json({ message: 'Failed to extract EXIF data' });
     }
   });
 

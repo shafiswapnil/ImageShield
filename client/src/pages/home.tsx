@@ -3,6 +3,7 @@ import Header from '@/components/header';
 import Footer from '@/components/footer';
 import UploadZone from '@/components/upload-zone';
 import ImageEditor from '@/components/image-editor';
+import ExifDisplay from '@/components/exif-display';
 
 export interface ImageInfo {
   file: File;
@@ -50,13 +51,21 @@ export default function Home() {
           {!image ? (
             <UploadZone onFileUpload={handleFileUpload} />
           ) : (
-            <ImageEditor 
-              image={image}
-              watermarkSettings={watermarkSettings}
-              exifProtection={exifProtection}
-              onUpdateSettings={handleUpdateSettings}
-              onExifToggle={handleExifToggle}
-            />
+            <>
+              <ImageEditor 
+                image={image}
+                watermarkSettings={watermarkSettings}
+                exifProtection={exifProtection}
+                onUpdateSettings={handleUpdateSettings}
+                onExifToggle={handleExifToggle}
+              />
+              <div className="p-6">
+                <ExifDisplay 
+                  imageFile={image.file}
+                  exifProtectionEnabled={exifProtection}
+                />
+              </div>
+            </>
           )}
         </div>
       </main>

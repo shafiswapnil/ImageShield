@@ -20,20 +20,24 @@ export default function ImageEditor({
 }: ImageEditorProps) {
   const handleProcessImage = async () => {
     try {
+      // Create a FormData object to properly upload the file
+      const formData = new FormData();
+      formData.append('image', image.file);
+      formData.append('text', watermarkSettings.text);
+      formData.append('position', watermarkSettings.position);
+      formData.append('opacity', watermarkSettings.opacity.toString());
+      formData.append('fontSize', watermarkSettings.fontSize.toString());
+      formData.append('exifProtection', exifProtection ? 'true' : 'false');
+      
+      // Send the form data to the server
       const response = await fetch('/api/process-image', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageId: image.file.name, // Use a temporary ID based on filename
-          watermarkSettings,
-          exifProtection,
-        }),
+        body: formData,
       });
       
       if (!response.ok) {
-        throw new Error('Failed to process image');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to process image');
       }
       
       const blob = await response.blob();
@@ -51,7 +55,11 @@ export default function ImageEditor({
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error processing image:', error);
-      // In a real app, you would show an error message
+      if (error instanceof Error) {
+        alert(`Failed to process image: ${error.message}`);
+      } else {
+        alert('Failed to process image. An unknown error occurred.');
+      }
     }
   };
   

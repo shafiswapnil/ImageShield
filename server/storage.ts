@@ -48,6 +48,40 @@ interface WatermarkSettings {
   fontSize: number;
 }
 
+// Extract EXIF data from an image
+export async function extractExifData(imagePath: string): Promise<any> {
+  try {
+    // Use sharp to extract metadata
+    const metadata = await sharp(imagePath).metadata();
+    
+    // Return EXIF data or a simplified metadata object
+    return metadata.exif ? {
+      // If we have proper EXIF data, parse it
+      ...metadata,
+      exifParsed: metadata.exif ? true : false,
+    } : {
+      // Return basic metadata as a fallback
+      format: metadata.format,
+      width: metadata.width,
+      height: metadata.height,
+      space: metadata.space,
+      channels: metadata.channels,
+      depth: metadata.depth,
+      isProgressive: metadata.isProgressive,
+      // Add note that no EXIF data was found
+      exifParsed: false,
+      note: "No EXIF data found in original image"
+    };
+  } catch (error) {
+    console.error('Error extracting EXIF data:', error);
+    // Return a basic object if extraction fails
+    return {
+      error: "Failed to extract EXIF data",
+      exifParsed: false
+    };
+  }
+}
+
 // Function to add watermark to image
 export async function processImage(
   imagePath: string,
