@@ -93,130 +93,78 @@ export async function processImage(
     const { text, position, opacity, fontSize } = watermarkSettings;
     
     // Load the image with sharp
-    let imageProcessor = sharp(imagePath);
+    let image = sharp(imagePath);
     
-    // Get image metadata
-    const metadata = await imageProcessor.metadata();
+    // Get the metadata
+    const metadata = await image.metadata();
     const width = metadata.width || 800;
     const height = metadata.height || 600;
     
-    // Create SVG content based on whether we're in EXIF-only mode
-    let svgContent = '';
-    
-    // In EXIF-only mode, we don't add any visible watermarks
-    if (!exifOnlyMode) {
-      // Add the main watermark text
-      svgContent = `
-        <style>
-          .watermark {
-            fill: rgba(255, 255, 255, ${opacity / 100});
-            font-family: 'Arial', sans-serif;
-            font-weight: bold;
-            font-size: ${fontSize}px;
-            filter: drop-shadow(0px 1px 3px rgba(0, 0, 0, 0.8));
-          }
-          .exif-protection-text {
-            fill: rgba(255, 255, 255, 0.85);
-            font-family: 'Arial', sans-serif;
-            font-size: 10px;
-            text-anchor: end;
-          }
-        </style>
-        <text
-          class="watermark"
-          x="${getXPosition(position, width, fontSize * text.length * 0.5)}"
-          y="${getYPosition(position, height, fontSize)}"
-        >${text}</text>
+    // Skip watermarking if in EXIF-only mode
+    if (!exifOnlyMode && text) {
+      // Create SVG for watermark
+      const svgContent = `
+        <svg width="${width}" height="${height}">
+          <style>
+            .watermark {
+              fill: rgba(255, 255, 255, ${opacity / 100});
+              font-family: 'Arial', sans-serif;
+              font-weight: bold;
+              font-size: ${fontSize}px;
+              filter: drop-shadow(0px 1px 3px rgba(0, 0, 0, 0.8));
+            }
+            .info {
+              fill: rgba(255, 255, 255, 0.7);
+              font-family: 'Arial', sans-serif;
+              font-size: 10px;
+            }
+          </style>
+          <text
+            class="watermark"
+            x="${getXPosition(position, width, fontSize * text.length * 0.5)}"
+            y="${getYPosition(position, height, fontSize)}"
+          >${text}</text>
+          ${addExifProtection ? 
+            `<text class="info" x="${width - 10}" y="${height - 10}" text-anchor="end">Protected with EXIF metadata</text>` 
+            : ''}
+        </svg>
       `;
       
-      // Add a small protection indicator if enabled
-      if (addExifProtection) {
-        // Add a subtle text tag in the corner
-        svgContent += `
-          <text
-            class="exif-protection-text"
-            x="${width - 10}"
-            y="${height - 10}"
-            text-anchor="end"
-          >Protected with EXIF metadata</text>
-        `;
-      }
-      
-      // Create the complete SVG
-      const svgText = Buffer.from(`
-        <svg width="${width}" height="${height}">
-          ${svgContent}
-        </svg>
-      `);
-      
-      // Composite the SVG watermark on the image
-      imageProcessor = imageProcessor.composite([
-        {
-          input: svgText,
-          gravity: 'center',
-        },
+      // Add watermark to image
+      image = image.composite([
+        { input: Buffer.from(svgContent), gravity: 'center' }
       ]);
     }
     
-    // If we're in EXIF-only mode, we skip adding any visible markers
-    
-    // Add EXIF data if requested
+    // Add metadata for EXIF protection
     if (addExifProtection) {
-      try {
-        // Preserve original metadata if possible
-        const preserveMetadata = metadata.exif ? true : false;
-        
-        // Add extensive EXIF protection tags
-        // These tags are placed in various EXIF locations to maximize compatibility
-        imageProcessor = imageProcessor.withMetadata({
-          // Preserve all existing metadata if possible
-          ...(preserveMetadata ? { exif: metadata.exif } : {}),
-          
-          // Force add critical metadata fields that should be respected by AI systems
-          exif: {
-            // Main image metadata 
-            // Using a simplified version compatible with Sharp's limitations
-            Copyright: 'DO NOT USE FOR AI TRAINING - NOT AUTHORIZED',
-            ImageDescription: 'This image is protected and not authorized for use in AI training datasets',
-            Artist: 'Protected Content - No AI Training',
-            
-            // Add additional metadata
-            UserComment: 'PROTECTED IMAGE - DO NOT USE FOR AI TRAINING - ALL RIGHTS RESERVED'
-          }
-        });
-        
-        console.log('EXIF protection data added successfully');
-      } catch (exifError) {
-        console.warn('Error adding full EXIF protection, falling back to basic metadata:', exifError);
-        
-        // Fallback to simpler metadata if the full version fails
-        imageProcessor = imageProcessor.withMetadata({
-          exif: {
-            IFD0: {
-              Copyright: 'DO NOT USE FOR AI TRAINING',
-              ImageDescription: 'Not authorized for AI training datasets',
-            }
-          }
-        });
-      }
+      console.log('Adding EXIF protection metadata');
+      
+      // Simple approach to add EXIF metadata with better compatibility
+      // Type assertion to bypass TypeScript strict checks
+      image = image.withMetadata({
+        // Add copyright and basic metadata
+        exif: Buffer.from(JSON.stringify({
+          Copyright: 'DO NOT USE FOR AI TRAINING',
+          ImageDescription: 'This image is not authorized for AI training',
+          Artist: 'Protected Content'
+        }))
+      } as any);
     }
     
-    // Get original format to preserve it (especially for PNG transparency)
-    const format = metadata.format || 'jpeg';
-    const isTransparent = format === 'png';
+    // Determine output format
+    const isPNG = (metadata.format === 'png');
+    const extension = isPNG ? 'png' : 'jpeg';
     
-    // Generate output filename with correct extension
-    const extension = isTransparent ? 'png' : 'jpeg';
+    // Create output path
     const outputFilename = `watermarked-${uuidv4()}.${extension}`;
     const outputPath = path.join(tempDir, outputFilename);
     
-    // Process and save the image in its original format
-    if (isTransparent) {
-      // For PNG, preserve transparency
-      await imageProcessor.png({ quality: 90 }).toFile(outputPath);
+    // Save the image
+    if (isPNG) {
+      await image.png().toFile(outputPath);
     } else {
-      // For JPEG, use jpeg format
-      await imageProcessor.jpeg({ quality: 90 }).toFile(outputPath);
+      await image.jpeg().toFile(outputPath);
     }
     
     return outputPath;
