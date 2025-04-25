@@ -101,9 +101,17 @@ export async function addWatermarkToCanvas(
         ctx.fillText(exifNote, canvas.width - 10, canvas.height - 10);
       }
       
-      // Check if image is PNG to preserve transparency
-      const isPNG = image.type === 'image/png';
-      const outputFormat = isPNG ? 'image/png' : 'image/jpeg';
+      // Check original file type to preserve format
+      let outputFormat = 'image/jpeg';
+      
+      // Try to get the file type in various ways
+      if (imageUrl.toLowerCase().endsWith('.png')) {
+        outputFormat = 'image/png';
+      } else if (imageUrl.toLowerCase().endsWith('.gif')) {
+        outputFormat = 'image/gif';
+      } else if (imageUrl.toLowerCase().endsWith('.webp')) {
+        outputFormat = 'image/webp';
+      }
       
       // Convert canvas to blob and resolve promise
       canvas.toBlob((blob) => {
@@ -136,9 +144,44 @@ export async function createDownloadableImage(
   },
   exifProtection: boolean = true  // Default to true for safety
 ): Promise<Blob> {
+  // Create object URL from the image file
   const imageUrl = URL.createObjectURL(image);
+  
   try {
-    const blob = await addWatermarkToCanvas(imageUrl, watermarkSettings, exifProtection);
+    // Process the image
+    let blob = await addWatermarkToCanvas(imageUrl, watermarkSettings, exifProtection);
+    
+    // If EXIF protection is enabled, attempt to add EXIF data using server
+    // This is a fallback approach since browser security prevents direct EXIF modification
+    if (exifProtection && blob) {
+      try {
+        // Create a new file from the blob with the original name
+        const processedFile = new File([blob], image.name, { type: image.type });
+        
+        // Create a FormData object to send to the server
+        const formData = new FormData();
+        formData.append('image', processedFile);
+        formData.append('exifProtection', 'true');
+        
+        // Try to add EXIF data via server
+        const response = await fetch('/api/add-exif', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (response.ok) {
+          // If server successfully processed the image, use that blob instead
+          const serverBlob = await response.blob();
+          if (serverBlob && serverBlob.size > 0) {
+            blob = serverBlob;
+          }
+        }
+      } catch (exifError) {
+        console.warn('Failed to add EXIF data via server, using client-side image only:', exifError);
+        // Continue with the client-side processed image if server processing fails
+      }
+    }
+    
     return blob;
   } finally {
     // Clean up the object URL

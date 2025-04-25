@@ -76,6 +76,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API endpoint for adding EXIF protection data to images
+  app.post('/api/add-exif', upload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No image file provided' });
+      }
+
+      // Get the original file format
+      const fileExtension = path.extname(req.file.originalname).toLowerCase();
+      const isPng = fileExtension === '.png';
+      
+      // Skip watermark, only add EXIF data
+      const watermarkSettings = {
+        text: '', // Empty text - no visible watermark needed since client already did it
+        position: 'bottom-right',
+        opacity: 0,
+        fontSize: 0
+      };
+
+      // Process the image to add EXIF data
+      const processedImagePath = await processImage(
+        req.file.path, 
+        watermarkSettings, 
+        true, // Always add EXIF protection for this endpoint
+        true  // ExifOnlyMode - skip visible watermark
+      );
+      
+      // Set headers for file download
+      res.setHeader('Content-Disposition', `attachment; filename="exif-protected-${req.file.originalname}"`);
+      res.setHeader('Content-Type', isPng ? 'image/png' : 'image/jpeg');
+
+      // Stream the file to the client
+      const fileStream = fs.createReadStream(processedImagePath);
+      fileStream.pipe(res);
+
+      // Clean up files after sending
+      fileStream.on('end', () => {
+        fs.unlink(processedImagePath, (err) => {
+          if (err) console.error('Error cleaning up processed file:', err);
+        });
+        
+        fs.unlink(req.file!.path, (err) => {
+          if (err) console.error('Error cleaning up uploaded file:', err);
+        });
+      });
+    } catch (error) {
+      console.error('Error adding EXIF data:', error);
+      res.status(500).json({ message: 'Failed to add EXIF data' });
+    }
+  });
+
   // Handle direct base64 data submissions
   app.post('/api/process-image-base64', async (req, res) => {
     try {
