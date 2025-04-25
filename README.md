@@ -135,8 +135,34 @@ npm run start
 The following environment variables must be set in your Railway project:
 
 1. `DATABASE_URL`: PostgreSQL connection string for your database
-   - Format: `postgresql://username:password@host:port/database`
-   - Railway will automatically provide this when you add a PostgreSQL database
+
+#### How to Set Up PostgreSQL in Railway (Baby Steps! 🍼)
+
+1. **Create Database:**
+   - Go to Railway Dashboard
+   - Click "New Project" (big blue button!)
+   - Choose "Database" (look for the blocks!)
+   - Pick "PostgreSQL" (it has a cute elephant! 🐘)
+   - Wait for it to finish (like waiting for cookies to bake! 🍪)
+
+2. **Get Database URL:**
+   - In your new PostgreSQL project
+   - Find "Connect" button (usually on top)
+   - Click dropdown and select "PostgreSQL Connection URL"
+   - Click "Copy" button (looks like two squares 📋)
+   - Your URL will look like: `postgresql://postgres:password@containers-us-west-1.railway.app:5432/railway`
+
+3. **Use the Database URL:**
+   - Copy your URL from Railway
+   - In your code, it will use this URL from `process.env.DATABASE_URL`
+   - The code is already set up to use this in `db/index.ts`!
+
+4. **Test Connection:**
+   - Start your application
+   - If you see "Connected to database" in logs, you did it! 🎉
+   - If you see errors, double-check your URL! 
+
+Remember: Keep your database URL secret! It's like your special treehouse password! 🌳
 
 2. `NODE_ENV`: Set this to "production"
    - Value: `production`
