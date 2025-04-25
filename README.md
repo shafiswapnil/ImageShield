@@ -218,3 +218,6 @@ For issues or questions, please open a GitHub issue with:
 - Description of problem
 - Steps to reproduce
 - Expected vs actual behavior
+
+## License
+This project is licensed under the GNU Affero General Public License v3.0 or later - see the [LICENSE](LICENSE) file for details.
