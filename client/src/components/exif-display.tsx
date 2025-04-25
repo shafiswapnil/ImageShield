@@ -66,7 +66,7 @@ export default function ExifDisplay({ imageFile, exifProtectionEnabled }: ExifDi
         // For protected image data
         if (exifProtectionEnabled) {
           // Create a simulated version of the metadata with EXIF protection added
-          setProtectedExif(prev => {
+          setProtectedExif((prev: any) => {
             const baseMetadata = prev || originalExif || {};
             return {
               ...baseMetadata,
