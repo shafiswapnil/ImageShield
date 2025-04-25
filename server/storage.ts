@@ -148,13 +148,10 @@ export async function processImage(
       console.log('Adding EXIF protection metadata');
       
       try {
-        // Simplest approach - just use withMetadata with no special EXIF options
-        // This is more reliable based on Sharp's actual implementation
+        // Add metadata without ICC profile
         image = image.withMetadata({
-          // Most basic metadata that Sharp can reliably handle
           copyright: 'DO NOT USE FOR AI TRAINING',
-          artist: 'Protected Content',
-          icc: false // Don't include ICC profile
+          artist: 'Protected Content'
         });
         
         console.log('Added basic metadata protection');
