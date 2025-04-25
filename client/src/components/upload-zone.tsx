@@ -77,7 +77,7 @@ export default function UploadZone({ onFileUpload }: UploadZoneProps) {
       'image/png': []
     },
     maxFiles: 1,
-    maxSize: 5 * 1024 * 1024, // 5MB size limit (same as server)
+    maxSize: 30 * 1024 * 1024, // 30MB size limit (same as server)
   });
   
   return (

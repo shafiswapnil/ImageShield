@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
 });
 
 // Configure upload middleware with strict size limits for public usage
-const PUBLIC_MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB max file size for public usage
+const PUBLIC_MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB max file size for public usage
 
 export const upload = multer({
   storage,
