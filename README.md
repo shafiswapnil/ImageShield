@@ -1,7 +1,6 @@
-
 # AI Defense Watermarker 🛡️
 
-A React + Express application that helps protect images from AI training by adding visible watermarks and EXIF metadata.
+Protect your images from AI training with visible watermarks and EXIF metadata tags! This tool helps content creators and photographers safeguard their work from being used in AI model training.
 
 ## Version
 1.0.0
