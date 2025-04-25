@@ -130,6 +130,31 @@ npm run start
    }
    ```
 
+### Required Environment Variables for Railway
+
+The following environment variables must be set in your Railway project:
+
+1. `DATABASE_URL`: PostgreSQL connection string for your database
+   - Format: `postgresql://username:password@host:port/database`
+   - Railway will automatically provide this when you add a PostgreSQL database
+
+2. `NODE_ENV`: Set this to "production"
+   - Value: `production`
+
+3. `PORT`: Set this to match your Railway configuration
+   - Value: `5000` (default)
+
+### Setting Environment Variables in Railway
+
+1. Go to your project settings in Railway
+2. Navigate to the "Variables" tab
+3. Add each environment variable:
+   ```
+   DATABASE_URL=<your-database-url>
+   NODE_ENV=production
+   PORT=5000
+   ```
+
 ### Railway Deployment Steps
 
 1. Create Railway account (railway.app)
