@@ -2,208 +2,305 @@
 
 Protect your images from AI training with visible watermarks and EXIF metadata tags! This tool helps content creators and photographers safeguard their work from being used in AI model training.
 
-## Version
-
-1.0.0
-
 ## Features
 
-- Image upload and preview
-- Customizable watermark text
-- Watermark position selection
+✨ **Core Features**
+
+- Upload & preview images (supports JPG/PNG)
+- Customizable watermark text and positioning
 - EXIF metadata protection
-- Automatic file cleanup (12-hour retention)
-- Responsive UI
-- Real-time preview
+- Real-time watermark preview
+- Responsive, modern UI
+- Automatic file cleanup
+
+🔒 **Protection Methods**
+
+- Visible watermarking
+- EXIF metadata injection
+- Copyright tags
+- Artist attribution
 
 ## Tech Stack
 
-- Frontend:
-  - React 18
-  - TypeScript
-  - Tailwind CSS
-  - Shadcn/ui components
-  - Vite
-- Backend:
-  - Express.js
-  - Sharp (image processing)
-  - Multer (file uploads)
+### Frontend
 
-## Directory Structure
+- React 18 with TypeScript
+- Vite for build tooling
+- Tailwind CSS
+- Shadcn/ui components
+- Modern React Hooks
 
-```
-├── client/               # Frontend React application
-│   ├── src/
-│   │   ├── components/   # React components
-│   │   ├── hooks/       # Custom React hooks
-│   │   ├── lib/         # Utility functions
-│   │   └── pages/       # Page components
-├── server/              # Backend Express application
-│   ├── routes.ts       # API routes
-│   ├── storage.ts      # File storage logic
-│   └── index.ts        # Server entry point
-└── shared/             # Shared types
-```
+### Backend
 
-## Installation Guide
+- Express.js
+- Sharp for image processing
+- Multer for file handling
+- Auto-cleanup system
 
-### Step 1: Clone and Install Dependencies
+## Quick Start
 
-```bash
-# Clone your repository
-git clone <your-repo-url>
+### Prerequisites
 
-# Install dependencies
-npm install
-```
+- Node.js >= 20.0.0
+- npm or yarn
 
-### Step 2: Environment Setup
+### Installation
 
-Create a new file `.env` in the root directory:
+1. Clone & Install:
 
-```
-NODE_ENV=development
-PORT=5000
-```
+   ```bash
+   git clone <repository-url>
+   cd ImageShield
+   npm install
+   ```
 
-### Step 3: Development
+2. Create `.env`:
 
-To run the development server:
+   ```
+   NODE_ENV=development
+   PORT=5002
+   ```
 
-```bash
-npm run dev
-```
+3. Start Development Server:
+   ```bash
+   npm run dev
+   ```
 
-This will start:
+Your app will be running at:
 
-- Frontend dev server with Vite
-- Backend Express server
-- File cleanup service (12-hour retention)
+- Frontend: http://localhost:5002
+- API Endpoints: http://localhost:5002/api/\*
 
-### Step 4: Building for Production
+## API Documentation
+
+### POST /api/process-image
+
+Process images with watermark and EXIF protection.
+
+- Method: POST
+- Content-Type: multipart/form-data
+- Body:
+  - image: File (JPG/PNG)
+  - text: string
+  - position: string
+  - opacity: number
+  - fontSize: number
+  - exifProtection: boolean
+
+### POST /api/extract-exif
+
+Extract EXIF metadata from images.
+
+- Method: POST
+- Content-Type: multipart/form-data
+- Body:
+  - image: File (JPG/PNG)
+
+### POST /api/add-exif
+
+Add protection metadata to images.
+
+- Method: POST
+- Content-Type: multipart/form-data
+- Body:
+  - image: File (JPG/PNG)
+  - exifData: Object (optional)
+
+## Production Deployment
+
+### Build
 
 ```bash
 npm run build
 ```
 
-This builds:
+Generates:
 
-- Frontend static files (in dist/public)
-- Backend server code (in dist/)
+- Frontend: ./dist/public/
+- Backend: ./dist/
 
-### Step 5: Production Start
+### Production Start
 
 ```bash
-npm run start
+NODE_ENV=production npm start
 ```
 
-## Image Cleanup System
+### Environment Variables
 
-- Images are automatically deleted after 12 hours
+- NODE_ENV: 'development' or 'production'
+- PORT: Server port (default: 5002)
+
+## System Features
+
+### Automatic Cleanup
+
+- Files older than 12 hours are automatically removed
 - Cleanup service runs every 60 minutes
-- Located in `server/storage.ts`
-- No configuration needed, works automatically
+- Zero configuration required
+- Managed in server/storage.ts
 
-## API Endpoints
+### Image Processing
 
-### POST /api/process-image
+- Supports JPG and PNG formats
+- Max file size: 30MB
+- EXIF metadata preservation
+- Copyright and artist tags
+- Custom watermark positioning
 
-- Uploads and processes image with watermark
-- Accepts multipart form data
-- Returns processed image
+## Troubleshooting
 
-### POST /api/extract-exif
+### Common Issues
 
-- Extracts EXIF data from image
-- Accepts image file
-- Returns EXIF metadata
+1. **Upload Fails**
 
-### POST /api/add-exif
+   - Verify file size (max 30MB)
+   - Check file format (JPG/PNG only)
+   - Ensure proper MIME type
 
-- Adds protection metadata to image
-- Accepts image file
-- Returns protected image
+2. **EXIF Protection**
+
+   - Confirm image format supports EXIF
+   - Check server logs for metadata errors
+   - Verify Sharp library installation
+
+3. **Server Port**
+   - Default port is 5002
+   - Can be changed via PORT env variable
+   - Check for port conflicts
+
+### Getting Help
+
+For support:
+
+1. Check server logs
+2. Verify environment setup
+3. Open an issue with:
+   - Detailed description
+   - Steps to reproduce
+   - Environment details
 
 ## Deployment Guide
 
-### Preparing for Railway Deployment
+### Understanding the Application
 
-1. **Verify package.json scripts**
+Before deploying, it's important to understand how the app works:
 
-   - "build": Builds both frontend and backend
-   - "start": Starts production server
+1. **Frontend Processing:**
 
-2. **Environment Variables**
+   - Initial watermark preview
+   - Client-side image manipulation
+   - Real-time UI updates
 
-   - PORT: Railway will provide this
-   - NODE_ENV: Set to "production"
+2. **Backend Processing:**
+   - EXIF metadata injection
+   - High-quality image processing
+   - Temporary file handling during processing
 
-3. **Port Configuration**
+### Railway Deployment Steps
 
-   - Server listens on `process.env.PORT || 5000`
-   - Already configured in server/index.ts
+1. **Prerequisites**
 
-4. **Railway Specific**
-   - Add `engines` to package.json:
+   ```bash
+   # Make sure you have:
+   - A Railway account (railway.app)
+   - Railway CLI installed
+   - Git installed
+   ```
+
+2. **Project Setup**
+
+   ```bash
+   # Initialize Railway project
+   railway login
+   railway init
+   ```
+
+3. **Environment Configuration**
+   In Railway dashboard:
+
+   - Add `NODE_ENV=production`
+   - Add `PORT=5002` (or let Railway assign automatically)
+
+4. **Deployment Process**
+
+   ```bash
+   # Push your code
+   git add .
+   git commit -m "Ready for deployment"
+   railway up
+   ```
+
+5. **Verify Deployment**
+   - Check Railway dashboard for build logs
+   - Ensure all environment variables are set
+   - Test the deployed application endpoints
+
+### Important Railway-specific Notes
+
+1. **Port Configuration**
+
+   - Railway automatically assigns a PORT
+   - Application already handles this via process.env.PORT
+
+2. **Node.js Version**
+
+   - Required: Node.js >= 20.0.0
+   - Add to package.json:
+
    ```json
    "engines": {
      "node": ">=20.0.0"
    }
    ```
 
-### Required Environment Variables for Railway
+3. **Memory Management**
 
-1. `NODE_ENV`: Set this to "production"
+   - Temporary files are automatically cleaned up
+   - Files are stored briefly during processing only
+   - No persistent storage needed
+   - Railway's ephemeral filesystem is sufficient
 
-   - Value: `production`
+4. **Monitoring**
+   - Use Railway's built-in logs
+   - Monitor memory usage
+   - Check application logs for cleanup service
 
-2. `PORT`: Set this to match your Railway configuration
-   - Value: `5000` (default)
+### Troubleshooting Railway Deployment
 
-### Railway Deployment Steps
+1. **Build Fails**
 
-1. Create Railway account (railway.app)
-2. Install Railway CLI:
+   - Check Node.js version in package.json
+   - Verify all dependencies are listed
+   - Review Railway build logs
 
-   ```bash
-   npm i -g @railway/cli
-   ```
+2. **Runtime Errors**
 
-3. From Railway Dashboard:
+   - Check environment variables
+   - Verify PORT configuration
+   - Review application logs
 
-   - Create new project
-   - Connect your repository
-   - Add environment variables if needed
+3. **Performance Issues**
+   - Monitor memory usage
+   - Check file processing times
+   - Verify cleanup service is running
 
-4. Deploy Settings:
-   - Build Command: `npm run build`
-   - Start Command: `npm run start`
+### Getting Help with Railway
 
-The application handles file cleanup automatically, deleting uploaded images after 12 hours. This is managed by the cleanup service in the server code.
+1. Railway Dashboard:
 
-## Common Issues & Solutions
+   - https://railway.app/dashboard
+   - Check project metrics
+   - View application logs
 
-1. **Image Upload Fails**
-
-   - Check file size (max 10MB)
-   - Verify file type (JPG/PNG supported)
-
-2. **Watermark Not Visible**
-
-   - Ensure text is entered
-   - Check opacity settings
-
-3. **EXIF Protection Issues**
-   - Verify image format supports EXIF
-   - Check server logs for details
-
-## Support
-
-For issues or questions, please open a GitHub issue with:
-
-- Description of problem
-- Steps to reproduce
-- Expected vs actual behavior
+2. Support Resources:
+   - Railway Documentation: https://docs.railway.app
+   - GitHub Issues
+   - Railway Discord community
 
 ## License
-This project is licensed under the GNU Affero General Public License v3.0 or later - see the [LICENSE](LICENSE) file for details.
+
+GNU Affero General Public License v3.0 or later
+
+---
+
+Made with ❤️ for protecting creative works from AI training
