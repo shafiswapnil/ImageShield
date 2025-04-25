@@ -102,10 +102,19 @@ export async function processImage(
     // Load the image with sharp
     let image = sharp(imagePath);
     
-    // Get the metadata
-    const metadata = await image.metadata();
-    const width = metadata.width || 800;
-    const height = metadata.height || 600;
+    // Get the initial metadata
+    const initialMetadata = await image.metadata();
+    console.log('Initial image metadata:', {
+      format: initialMetadata.format,
+      width: initialMetadata.width,
+      height: initialMetadata.height,
+      copyright: initialMetadata.copyright,
+      artist: initialMetadata.artist,
+      exif: initialMetadata.exif ? 'Present' : 'None'
+    });
+    
+    const width = initialMetadata.width || 800;
+    const height = initialMetadata.height || 600;
     
     // Skip watermarking if in EXIF-only mode
     if (!exifOnlyMode && text) {
@@ -148,21 +157,25 @@ export async function processImage(
       console.log('Adding EXIF protection metadata');
       
       try {
-        // Add metadata without ICC profile
-        image = image.withMetadata({
-          copyright: 'DO NOT USE FOR AI TRAINING',
-          artist: 'Protected Content'
-        });
+        // Use Sharp's metadata API correctly
+        image = image.withMetadata()  // First preserve existing metadata
+          .withExifMerge({  // Then merge our custom EXIF data
+            IFD0: {
+              Copyright: 'DO NOT USE FOR AI TRAINING',
+              Artist: 'Protected Content',
+              ImageDescription: 'This image is protected against AI training usage'
+            }
+          });
         
-        console.log('Added basic metadata protection');
+        console.log('Added metadata protection');
       } catch (exifError) {
-        console.error('Error adding basic metadata:', exifError);
+        console.error('Error adding metadata:', exifError);
         // Continue without metadata if it fails
       }
     }
     
     // Determine output format
-    const isPNG = (metadata.format === 'png');
+    const isPNG = (initialMetadata.format === 'png');
     const extension = isPNG ? 'png' : 'jpeg';
     
     // Create output path
