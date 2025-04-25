@@ -48,12 +48,25 @@ export default function UploadZone({ onFileUpload }: UploadZoneProps) {
     reader.readAsDataURL(file);
   }, [onFileUpload]);
   
-  const onDropRejected = useCallback(() => {
-    toast({
-      title: "Unsupported file format",
-      description: "Please upload a JPG or PNG image.",
-      variant: "destructive"
-    });
+  const onDropRejected = useCallback((fileRejections: any[]) => {
+    // Check if it's a file size issue
+    const isSizeIssue = fileRejections.some(rejection => 
+      rejection.errors.some(error => error.code === 'file-too-large')
+    );
+    
+    if (isSizeIssue) {
+      toast({
+        title: "File too large",
+        description: "Maximum file size is 5MB. Please upload a smaller image.",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Unsupported file format",
+        description: "Please upload a JPG or PNG image.",
+        variant: "destructive"
+      });
+    }
   }, [toast]);
   
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -63,7 +76,8 @@ export default function UploadZone({ onFileUpload }: UploadZoneProps) {
       'image/jpeg': [],
       'image/png': []
     },
-    maxFiles: 1
+    maxFiles: 1,
+    maxSize: 5 * 1024 * 1024, // 5MB size limit (same as server)
   });
   
   return (
