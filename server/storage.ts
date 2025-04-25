@@ -127,21 +127,16 @@ export async function processImage(
       >${text}</text>
     `;
     
-    // Add EXIF protection visual indicator if enabled
+    // Add a small protection indicator if enabled
     if (addExifProtection) {
+      // Add a subtle text tag in the corner
       svgContent += `
-        <rect
-          class="exif-protection-bar"
-          x="0"
-          y="${height - 30}"
-          width="${width}"
-          height="30"
-        />
         <text
           class="exif-protection-text"
-          x="${width / 2}"
+          x="${width - 10}"
           y="${height - 10}"
-        >⚠️ PROTECTED: This image has EXIF metadata stating DO NOT USE FOR AI TRAINING</text>
+          text-anchor="end"
+        >Protected with EXIF metadata</text>
       `;
     }
     
@@ -173,12 +168,23 @@ export async function processImage(
       });
     }
     
-    // Generate output filename
-    const outputFilename = `watermarked-${uuidv4()}.jpeg`;
+    // Get original format to preserve it (especially for PNG transparency)
+    const format = metadata.format || 'jpeg';
+    const isTransparent = format === 'png';
+    
+    // Generate output filename with correct extension
+    const extension = isTransparent ? 'png' : 'jpeg';
+    const outputFilename = `watermarked-${uuidv4()}.${extension}`;
     const outputPath = path.join(tempDir, outputFilename);
     
-    // Process and save the image
-    await imageProcessor.jpeg({ quality: 90 }).toFile(outputPath);
+    // Process and save the image in its original format
+    if (isTransparent) {
+      // For PNG, preserve transparency
+      await imageProcessor.png({ quality: 90 }).toFile(outputPath);
+    } else {
+      // For JPEG, use jpeg format
+      await imageProcessor.jpeg({ quality: 90 }).toFile(outputPath);
+    }
     
     return outputPath;
   } catch (error) {

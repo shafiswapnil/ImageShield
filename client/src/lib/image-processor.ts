@@ -20,12 +20,15 @@ export async function addWatermarkToCanvas(
       canvas.width = img.width;
       canvas.height = img.height;
       
-      // Get drawing context
-      const ctx = canvas.getContext('2d');
+      // Get drawing context with alpha support for transparency
+      const ctx = canvas.getContext('2d', { alpha: true });
       if (!ctx) {
         reject(new Error('Could not get canvas context'));
         return;
       }
+      
+      // Clear canvas with transparent background
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       // Draw original image
       ctx.drawImage(img, 0, 0);
@@ -87,20 +90,20 @@ export async function addWatermarkToCanvas(
       // Draw watermark text
       ctx.fillText(watermarkSettings.text, x, y);
       
-      // For EXIF protection, create a more visible indicator at the bottom of the image
+      // Add subtle indicator for EXIF protection
       if (exifProtection) {
-        // Draw a semi-transparent background bar at the bottom
-        ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
-        ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
-        
-        // Draw the EXIF protection text
-        const exifNote = "⚠️ PROTECTED: This image has EXIF metadata stating DO NOT USE FOR AI TRAINING";
-        const noteSize = 14;
-        ctx.font = `bold ${noteSize}px Arial, sans-serif`;
-        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-        ctx.textAlign = "center";
-        ctx.fillText(exifNote, canvas.width / 2, canvas.height - 10);
+        // Add a small text note in the corner about EXIF protection
+        const exifNote = "Protected with EXIF metadata";
+        const noteSize = 10;
+        ctx.font = `${noteSize}px Arial, sans-serif`;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+        ctx.textAlign = "right";
+        ctx.fillText(exifNote, canvas.width - 10, canvas.height - 10);
       }
+      
+      // Check if image is PNG to preserve transparency
+      const isPNG = image.type === 'image/png';
+      const outputFormat = isPNG ? 'image/png' : 'image/jpeg';
       
       // Convert canvas to blob and resolve promise
       canvas.toBlob((blob) => {
@@ -109,7 +112,7 @@ export async function addWatermarkToCanvas(
         } else {
           reject(new Error('Failed to create image blob'));
         }
-      }, 'image/jpeg', 0.95);
+      }, outputFormat, 0.95);
     };
     
     img.onerror = () => {
