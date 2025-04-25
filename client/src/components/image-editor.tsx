@@ -20,39 +20,48 @@ export default function ImageEditor({
 }: ImageEditorProps) {
   const handleProcessImage = async () => {
     try {
-      // Create a FormData object to properly upload the file
-      const formData = new FormData();
-      formData.append('image', image.file);
-      formData.append('text', watermarkSettings.text);
-      formData.append('position', watermarkSettings.position);
-      formData.append('opacity', watermarkSettings.opacity.toString());
-      formData.append('fontSize', watermarkSettings.fontSize.toString());
-      formData.append('exifProtection', exifProtection ? 'true' : 'false');
-      
-      // Send the form data to the server
-      const response = await fetch('/api/process-image', {
-        method: 'POST',
-        body: formData,
+      // Process the image on the client side using our utility
+      import('@/lib/image-processor').then(async (module) => {
+        try {
+          // Show processing indicator
+          const processingMessage = 'Processing your image...';
+          alert(processingMessage);
+          
+          // Process the image client-side
+          const processedBlob = await module.createDownloadableImage(
+            image.file,
+            watermarkSettings,
+            exifProtection
+          );
+          
+          // Create a URL from the blob
+          const url = URL.createObjectURL(processedBlob);
+          
+          // Create an anchor element to trigger download
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `watermarked-${image.file.name}`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          
+          // Clean up the blob URL
+          URL.revokeObjectURL(url);
+          
+          // Provide feedback
+          alert('Image processed successfully! Download should begin automatically.');
+        } catch (innerError) {
+          console.error('Error in client-side processing:', innerError);
+          if (innerError instanceof Error) {
+            alert(`Error processing image: ${innerError.message}`);
+          } else {
+            alert('An unknown error occurred during image processing.');
+          }
+        }
+      }).catch(err => {
+        console.error('Failed to load image processor module:', err);
+        alert('Failed to load image processing module.');
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to process image');
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      // Create an anchor element and trigger download
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `watermarked-${image.file.name}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      
-      // Clean up the blob URL
-      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error processing image:', error);
       if (error instanceof Error) {

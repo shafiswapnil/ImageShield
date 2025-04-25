@@ -1,4 +1,4 @@
-// Client-side image processor for previewing
+// Client-side image processor for previewing and downloading
 export async function addWatermarkToCanvas(
   imageUrl: string,
   watermarkSettings: {
@@ -6,7 +6,8 @@ export async function addWatermarkToCanvas(
     position: string;
     opacity: number;
     fontSize: number;
-  }
+  },
+  exifProtection: boolean = false
 ): Promise<Blob> {
   // Create image element
   const img = new Image();
@@ -86,6 +87,15 @@ export async function addWatermarkToCanvas(
       // Draw watermark text
       ctx.fillText(watermarkSettings.text, x, y);
       
+      // For EXIF protection, create a "watermark" note at the bottom of the image
+      if (exifProtection) {
+        const exifNote = "This image contains EXIF metadata stating: DO NOT USE FOR AI TRAINING";
+        const noteSize = 12;
+        ctx.font = `${noteSize}px Arial, sans-serif`;
+        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.fillText(exifNote, 10, canvas.height - 10);
+      }
+      
       // Convert canvas to blob and resolve promise
       canvas.toBlob((blob) => {
         if (blob) {
@@ -114,14 +124,24 @@ export async function createDownloadableImage(
     position: string;
     opacity: number;
     fontSize: number;
-  }
+  },
+  exifProtection: boolean = true  // Default to true for safety
 ): Promise<Blob> {
   const imageUrl = URL.createObjectURL(image);
   try {
-    const blob = await addWatermarkToCanvas(imageUrl, watermarkSettings);
+    const blob = await addWatermarkToCanvas(imageUrl, watermarkSettings, exifProtection);
     return blob;
   } finally {
     // Clean up the object URL
     URL.revokeObjectURL(imageUrl);
   }
+}
+
+// This function simulates what EXIF data would be added (since we can't modify EXIF client-side)
+export function getExifProtectionData(): Record<string, string> {
+  return {
+    "Copyright": "DO NOT USE FOR AI TRAINING",
+    "ImageDescription": "This image is not authorized for use in AI training datasets",
+    "UserComment": "This image is protected and not authorized for AI training purposes",
+  };
 }

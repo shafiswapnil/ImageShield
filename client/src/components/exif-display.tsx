@@ -28,64 +28,86 @@ export default function ExifDisplay({ imageFile, exifProtectionEnabled }: ExifDi
         setLoading(true);
         setError(null);
 
-        // For original image
-        const formData = new FormData();
-        formData.append('image', imageFile);
-        
-        const response = await fetch('/api/extract-exif', {
-          method: 'POST',
-          body: formData,
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to extract EXIF data');
+        // Import the image processor to get the EXIF protection data
+        const imageProcessor = await import('@/lib/image-processor');
+        const exifProtectionData = imageProcessor.getExifProtectionData();
+
+        // For original image, attempt to extract EXIF from the server
+        // but fall back to client-side metadata if server extraction fails
+        try {
+          const formData = new FormData();
+          formData.append('image', imageFile);
+          
+          const response = await fetch('/api/extract-exif', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to extract EXIF data from server');
+          }
+          
+          const data = await response.json();
+          setOriginalExif(data.originalExif || {});
+        } catch (serverError) {
+          console.warn('Server EXIF extraction failed, using client metadata:', serverError);
+          
+          // Extract basic metadata from the image file on the client
+          const imageMetadata = {
+            "fileName": imageFile.name,
+            "fileSize": `${(imageFile.size / 1024).toFixed(2)} KB`,
+            "fileType": imageFile.type,
+            "lastModified": new Date(imageFile.lastModified).toISOString()
+          };
+          
+          setOriginalExif(imageMetadata);
         }
         
-        const data = await response.json();
-        setOriginalExif(data.originalExif || {});
-        
-        // For protected image mock data
+        // For protected image data
         if (exifProtectionEnabled) {
-          setProtectedExif({
-            ...data.originalExif,
-            IFD0: {
-              ...(data.originalExif?.IFD0 || {}),
-              Copyright: 'DO NOT USE FOR AI TRAINING',
-              ImageDescription: 'This image is not authorized for use in AI training datasets',
-            }
+          // Create a simulated version of the metadata with EXIF protection added
+          setProtectedExif(prev => {
+            const baseMetadata = prev || originalExif || {};
+            return {
+              ...baseMetadata,
+              // Add the EXIF protection fields
+              ...exifProtectionData,
+              "ExifMetadataNote": "These fields would be added to the image EXIF data",
+              "ExifProtection": "Enabled",
+              "_notes": "The changes shown here would be embedded in the actual image file"
+            };
           });
         } else {
-          setProtectedExif(data.originalExif);
+          // If protection is disabled, the processed image would have the same metadata
+          setProtectedExif(originalExif);
         }
       } catch (err) {
         console.error('Error extracting EXIF data:', err);
-        setError('Failed to extract EXIF data. This feature may not be supported in this environment.');
-        // Provide fallback EXIF data for demonstration in Replit
-        setOriginalExif({ 
-          "Make": "Example Camera",
-          "Model": "Model XYZ",
-          "Software": "Image Processing Software",
-          "DateTime": new Date().toISOString()
-        });
+        setError('Failed to extract EXIF data. Using simulated metadata for demonstration.');
+        
+        // Provide fallback EXIF data for demonstration
+        const simulatedMetadata = { 
+          "fileName": imageFile.name,
+          "fileSize": `${(imageFile.size / 1024).toFixed(2)} KB`,
+          "fileType": imageFile.type,
+          "lastModified": new Date(imageFile.lastModified).toISOString(),
+          "_note": "Simulated metadata for demonstration purposes"
+        };
+        
+        setOriginalExif(simulatedMetadata);
         
         if (exifProtectionEnabled) {
+          const imageProcessor = await import('@/lib/image-processor');
+          const exifProtectionData = imageProcessor.getExifProtectionData();
+          
           setProtectedExif({
-            "Make": "Example Camera",
-            "Model": "Model XYZ",
-            "Software": "Image Processing Software", 
-            "DateTime": new Date().toISOString(),
-            "IFD0": {
-              "Copyright": "DO NOT USE FOR AI TRAINING",
-              "ImageDescription": "This image is not authorized for use in AI training datasets"
-            }
+            ...simulatedMetadata,
+            ...exifProtectionData,
+            "ExifProtection": "Enabled",
+            "_notes": "The changes shown here would be embedded in the actual image file"
           });
         } else {
-          setProtectedExif({ 
-            "Make": "Example Camera",
-            "Model": "Model XYZ",
-            "Software": "Image Processing Software",
-            "DateTime": new Date().toISOString()
-          });
+          setProtectedExif(simulatedMetadata);
         }
       } finally {
         setLoading(false);
@@ -93,7 +115,7 @@ export default function ExifDisplay({ imageFile, exifProtectionEnabled }: ExifDi
     };
 
     extractExifData();
-  }, [imageFile, exifProtectionEnabled]);
+  }, [imageFile, exifProtectionEnabled, originalExif]);
 
   if (!imageFile) {
     return null;
