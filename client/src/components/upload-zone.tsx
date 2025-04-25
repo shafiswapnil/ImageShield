@@ -51,7 +51,7 @@ export default function UploadZone({ onFileUpload }: UploadZoneProps) {
   const onDropRejected = useCallback((fileRejections: any[]) => {
     // Check if it's a file size issue
     const isSizeIssue = fileRejections.some(rejection => 
-      rejection.errors.some(error => error.code === 'file-too-large')
+      rejection.errors.some((error: {code: string}) => error.code === 'file-too-large')
     );
     
     if (isSizeIssue) {
@@ -104,7 +104,10 @@ export default function UploadZone({ onFileUpload }: UploadZoneProps) {
         </Button>
         
         <div className="mt-4 text-sm text-gray-500">
-          Supported formats: JPG, PNG
+          Supported formats: JPG, PNG (max 5MB)
+        </div>
+        <div className="mt-2 text-xs text-gray-400">
+          Files are automatically deleted after 12 hours
         </div>
       </div>
       

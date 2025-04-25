@@ -148,24 +148,19 @@ export async function processImage(
       console.log('Adding EXIF protection metadata');
       
       try {
-        // Simplest approach that works with Sharp's limitations
-        image = image.withMetadata();
-        
-        // Since the other approach isn't working, we'll create EXIF data in a simpler way
-        // that's more compatible with Sharp's actual API
-        const exifData: Record<string, any> = {};
-        exifData.Copyright = 'DO NOT USE FOR AI TRAINING';
-        exifData.ImageDescription = 'This image is not authorized for AI training';
-        exifData.Artist = 'Protected Content';
-        
-        console.log('Adding EXIF metadata with compatible approach');
+        // Simplest approach - just use withMetadata with no special EXIF options
+        // This is more reliable based on Sharp's actual implementation
         image = image.withMetadata({
-          // This is confirmed to work with Sharp
-          exif: exifData
+          // Most basic metadata that Sharp can reliably handle
+          copyright: 'DO NOT USE FOR AI TRAINING',
+          artist: 'Protected Content',
+          icc: false // Don't include ICC profile
         });
+        
+        console.log('Added basic metadata protection');
       } catch (exifError) {
-        console.error('Error adding metadata:', exifError);
-        // Continue without EXIF data if it fails
+        console.error('Error adding basic metadata:', exifError);
+        // Continue without metadata if it fails
       }
     }
     
