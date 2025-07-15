@@ -21,12 +21,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const addExifProtection = req.body.exifProtection !== 'false';
+      
+      // Parse adversarial noise settings
+      const adversarialSettings = {
+        enabled: req.body.adversarialEnabled === 'true',
+        intensity: parseInt(req.body.adversarialIntensity || '5', 10),
+        method: (req.body.adversarialMethod || 'gaussian') as 'gaussian' | 'uniform' | 'perlin'
+      };
 
       // Process the image
       const processedImagePath = await processImage(
         req.file.path,
         watermarkSettings,
-        addExifProtection
+        addExifProtection,
+        false, // exifOnlyMode
+        adversarialSettings
       );
 
       // Set headers for file download
@@ -95,12 +104,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fontSize: 0
       };
 
+      // Parse adversarial noise settings for EXIF-only mode
+      const adversarialSettings = {
+        enabled: req.body.adversarialEnabled === 'true',
+        intensity: parseInt(req.body.adversarialIntensity || '5', 10),
+        method: (req.body.adversarialMethod || 'gaussian') as 'gaussian' | 'uniform' | 'perlin'
+      };
+
       // Process the image to add EXIF data
       const processedImagePath = await processImage(
         req.file.path, 
         watermarkSettings, 
         true, // Always add EXIF protection for this endpoint
-        true  // ExifOnlyMode - skip visible watermark
+        true, // ExifOnlyMode - skip visible watermark
+        adversarialSettings
       );
       
       // Set headers for file download
@@ -130,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Handle direct base64 data submissions
   app.post('/api/process-image-base64', async (req, res) => {
     try {
-      const { imageData, watermarkSettings, exifProtection } = req.body;
+      const { imageData, watermarkSettings, exifProtection, adversarialSettings } = req.body;
       
       if (!imageData || !imageData.startsWith('data:image/')) {
         return res.status(400).json({ message: 'Invalid image data' });
@@ -152,7 +169,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const processedImagePath = await processImage(
         tempFilePath,
         watermarkSettings,
-        exifProtection
+        exifProtection,
+        false, // exifOnlyMode
+        adversarialSettings
       );
       
       // Set headers for file download

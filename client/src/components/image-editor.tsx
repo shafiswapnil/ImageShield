@@ -1,5 +1,5 @@
 import React from 'react';
-import { ImageInfo, WatermarkSettings } from '@/pages/home';
+import { ImageInfo, WatermarkSettings, AdversarialSettings } from '@/pages/home';
 import ImagePreview from '@/components/image-preview';
 import WatermarkForm from '@/components/watermark-form';
 
@@ -7,16 +7,20 @@ interface ImageEditorProps {
   image: ImageInfo;
   watermarkSettings: WatermarkSettings;
   exifProtection: boolean;
+  adversarialSettings: AdversarialSettings;
   onUpdateSettings: (settings: Partial<WatermarkSettings>) => void;
   onExifToggle: (enabled: boolean) => void;
+  onAdversarialUpdate: (settings: Partial<AdversarialSettings>) => void;
 }
 
 export default function ImageEditor({ 
   image, 
   watermarkSettings, 
   exifProtection,
+  adversarialSettings,
   onUpdateSettings,
-  onExifToggle
+  onExifToggle,
+  onAdversarialUpdate
 }: ImageEditorProps) {
   const handleProcessImage = async () => {
     try {
@@ -31,7 +35,8 @@ export default function ImageEditor({
           const processedBlob = await module.createDownloadableImage(
             image.file,
             watermarkSettings,
-            exifProtection
+            exifProtection,
+            adversarialSettings
           );
           
           // Create a URL from the blob
@@ -83,8 +88,10 @@ export default function ImageEditor({
       <WatermarkForm 
         watermarkSettings={watermarkSettings}
         exifProtection={exifProtection}
+        adversarialSettings={adversarialSettings}
         onUpdateSettings={onUpdateSettings}
         onExifToggle={onExifToggle}
+        onAdversarialUpdate={onAdversarialUpdate}
         onProcessImage={handleProcessImage}
       />
     </div>

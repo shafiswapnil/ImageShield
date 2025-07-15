@@ -20,6 +20,12 @@ export interface WatermarkSettings {
   fontSize: number;
 }
 
+export interface AdversarialSettings {
+  enabled: boolean;
+  intensity: number; // 1-10 scale
+  method: 'gaussian' | 'uniform' | 'perlin';
+}
+
 export default function Home() {
   const [image, setImage] = React.useState<ImageInfo | null>(null);
   const [watermarkSettings, setWatermarkSettings] = React.useState<WatermarkSettings>({
@@ -29,6 +35,11 @@ export default function Home() {
     fontSize: 24
   });
   const [exifProtection, setExifProtection] = React.useState(true);
+  const [adversarialSettings, setAdversarialSettings] = React.useState<AdversarialSettings>({
+    enabled: true, // Enable by default for better protection
+    intensity: 5, // Medium intensity
+    method: 'gaussian' // Most effective against CNNs
+  });
 
   const handleFileUpload = (imageInfo: ImageInfo) => {
     setImage(imageInfo);
@@ -40,6 +51,10 @@ export default function Home() {
 
   const handleExifToggle = (enabled: boolean) => {
     setExifProtection(enabled);
+  };
+
+  const handleAdversarialUpdate = (newSettings: Partial<AdversarialSettings>) => {
+    setAdversarialSettings(prev => ({ ...prev, ...newSettings }));
   };
 
   return (
@@ -56,8 +71,10 @@ export default function Home() {
                 image={image}
                 watermarkSettings={watermarkSettings}
                 exifProtection={exifProtection}
+                adversarialSettings={adversarialSettings}
                 onUpdateSettings={handleUpdateSettings}
                 onExifToggle={handleExifToggle}
+                onAdversarialUpdate={handleAdversarialUpdate}
               />
               <div className="p-6">
                 <ExifDisplay 

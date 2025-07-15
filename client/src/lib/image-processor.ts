@@ -142,13 +142,55 @@ export async function createDownloadableImage(
     opacity: number;
     fontSize: number;
   },
-  exifProtection: boolean = true  // Default to true for safety
+  exifProtection: boolean = true,  // Default to true for safety
+  adversarialSettings?: {
+    enabled: boolean;
+    intensity: number;
+    method: 'gaussian' | 'uniform' | 'perlin';
+  }
 ): Promise<Blob> {
-  // Create object URL from the image file
+  // If adversarial protection is enabled, use server-side processing for everything
+  // This ensures proper adversarial noise application with Sharp
+  if (adversarialSettings?.enabled) {
+    try {
+      console.log('Using server-side processing for adversarial protection...');
+      
+      // Create FormData for server processing
+      const formData = new FormData();
+      formData.append('image', image);
+      formData.append('text', watermarkSettings.text);
+      formData.append('position', watermarkSettings.position);
+      formData.append('opacity', watermarkSettings.opacity.toString());
+      formData.append('fontSize', watermarkSettings.fontSize.toString());
+      formData.append('exifProtection', exifProtection.toString());
+      
+      // Add adversarial settings
+      formData.append('adversarialEnabled', 'true');
+      formData.append('adversarialIntensity', adversarialSettings.intensity.toString());
+      formData.append('adversarialMethod', adversarialSettings.method);
+      
+      // Send to server for complete processing
+      const response = await fetch('/api/process-image', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (response.ok) {
+        return await response.blob();
+      } else {
+        throw new Error(`Server processing failed: ${response.status} ${response.statusText}`);
+      }
+    } catch (serverError) {
+      console.error('Server-side processing failed:', serverError);
+      throw new Error(`Failed to apply adversarial protection: ${serverError instanceof Error ? serverError.message : 'Unknown error'}`);
+    }
+  }
+  
+  // Fallback to client-side processing for non-adversarial cases
   const imageUrl = URL.createObjectURL(image);
   
   try {
-    // Process the image
+    // Process the image client-side
     let blob = await addWatermarkToCanvas(imageUrl, watermarkSettings, exifProtection);
     
     // If EXIF protection is enabled, attempt to add EXIF data using server
@@ -162,6 +204,13 @@ export async function createDownloadableImage(
         const formData = new FormData();
         formData.append('image', processedFile);
         formData.append('exifProtection', 'true');
+        
+        // Add adversarial settings to EXIF endpoint as well
+        if (adversarialSettings) {
+          formData.append('adversarialEnabled', adversarialSettings.enabled.toString());
+          formData.append('adversarialIntensity', adversarialSettings.intensity.toString());
+          formData.append('adversarialMethod', adversarialSettings.method);
+        }
         
         // Try to add EXIF data via server
         const response = await fetch('/api/add-exif', {

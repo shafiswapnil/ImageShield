@@ -55,6 +55,148 @@ interface WatermarkSettings {
   fontSize: number;
 }
 
+interface AdversarialSettings {
+  enabled: boolean;
+  intensity: number; // 1-10 scale
+  method: 'gaussian' | 'uniform' | 'perlin'; // Different noise types
+}
+
+/**
+ * Generate adversarial noise to protect images from AI training
+ * This adds imperceptible perturbations that disrupt neural network training
+ */
+async function generateAdversarialNoise(
+  imageBuffer: Buffer, 
+  settings: AdversarialSettings
+): Promise<Buffer> {
+  if (!settings.enabled) {
+    return imageBuffer;
+  }
+
+  try {
+    const image = sharp(imageBuffer);
+    const { width, height, channels } = await image.metadata();
+    
+    if (!width || !height) {
+      console.warn('Could not get image dimensions for adversarial noise');
+      return imageBuffer;
+    }
+
+    // Convert intensity (1-10) to noise amplitude (0.001-0.02)
+    // Higher values are more effective but risk being visible
+    const noiseAmplitude = (settings.intensity / 10) * 0.019 + 0.001;
+    
+    console.log(`Applying adversarial noise: method=${settings.method}, intensity=${settings.intensity}, amplitude=${noiseAmplitude.toFixed(4)}`);
+
+    // Generate noise pattern based on method
+    let noiseBuffer: Buffer;
+    
+    switch (settings.method) {
+      case 'gaussian':
+        noiseBuffer = generateGaussianNoise(width, height, channels || 3, noiseAmplitude);
+        break;
+      case 'uniform':
+        noiseBuffer = generateUniformNoise(width, height, channels || 3, noiseAmplitude);
+        break;
+      case 'perlin':
+        noiseBuffer = generatePerlinNoise(width, height, channels || 3, noiseAmplitude);
+        break;
+      default:
+        noiseBuffer = generateGaussianNoise(width, height, channels || 3, noiseAmplitude);
+    }
+
+    // Apply noise to image using Sharp's composite with blend mode
+    const noisedImage = await image
+      .composite([{
+        input: noiseBuffer,
+        blend: 'add', // Add noise to original image
+        raw: {
+          width,
+          height,
+          channels: channels || 3
+        }
+      }])
+      .toBuffer();
+
+    return noisedImage;
+  } catch (error) {
+    console.error('Error applying adversarial noise:', error);
+    // Return original image if noise application fails
+    return imageBuffer;
+  }
+}
+
+/**
+ * Generate Gaussian (normal distribution) noise
+ * Most effective against CNN-based models
+ */
+function generateGaussianNoise(width: number, height: number, channels: number, amplitude: number): Buffer {
+  const pixelCount = width * height * channels;
+  const noiseArray = new Uint8Array(pixelCount);
+  
+  for (let i = 0; i < pixelCount; i++) {
+    // Box-Muller transform for Gaussian distribution
+    const u1 = Math.random();
+    const u2 = Math.random();
+    const gaussian = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+    
+    // Scale and clamp to valid pixel range
+    const noiseValue = Math.round(gaussian * amplitude * 255);
+    noiseArray[i] = Math.max(-128, Math.min(127, noiseValue)) + 128;
+  }
+  
+  return Buffer.from(noiseArray);
+}
+
+/**
+ * Generate uniform random noise
+ * Good general-purpose adversarial protection
+ */
+function generateUniformNoise(width: number, height: number, channels: number, amplitude: number): Buffer {
+  const pixelCount = width * height * channels;
+  const noiseArray = new Uint8Array(pixelCount);
+  
+  for (let i = 0; i < pixelCount; i++) {
+    // Uniform distribution between -amplitude and +amplitude
+    const noiseValue = (Math.random() - 0.5) * 2 * amplitude * 255;
+    noiseArray[i] = Math.max(-128, Math.min(127, Math.round(noiseValue))) + 128;
+  }
+  
+  return Buffer.from(noiseArray);
+}
+
+/**
+ * Generate Perlin-like structured noise
+ * Creates patterns that are harder for AI to filter out
+ */
+function generatePerlinNoise(width: number, height: number, channels: number, amplitude: number): Buffer {
+  const pixelCount = width * height * channels;
+  const noiseArray = new Uint8Array(pixelCount);
+  
+  // Simple pseudo-Perlin noise using multiple octaves
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let noiseValue = 0;
+      
+      // Multiple octaves for more complex patterns
+      for (let octave = 1; octave <= 4; octave++) {
+        const freq = octave * 0.01;
+        const amp = 1 / octave;
+        noiseValue += Math.sin(x * freq) * Math.cos(y * freq) * amp;
+      }
+      
+      // Apply to all channels
+      for (let c = 0; c < channels; c++) {
+        const index = (y * width + x) * channels + c;
+        const scaledNoise = noiseValue * amplitude * 255;
+        noiseArray[index] = Math.max(-128, Math.min(127, Math.round(scaledNoise))) + 128;
+      }
+    }
+  }
+  
+  return Buffer.from(noiseArray);
+}
+
 // Extract EXIF data from an image
 export async function extractExifData(imagePath: string): Promise<any> {
   try {
@@ -94,7 +236,8 @@ export async function processImage(
   imagePath: string,
   watermarkSettings: WatermarkSettings,
   addExifProtection: boolean,
-  exifOnlyMode: boolean = false
+  exifOnlyMode: boolean = false,
+  adversarialSettings?: AdversarialSettings
 ): Promise<string> {
   try {
     const { text, position, opacity, fontSize } = watermarkSettings;
@@ -178,16 +321,27 @@ export async function processImage(
     const isPNG = (initialMetadata.format === 'png');
     const extension = isPNG ? 'png' : 'jpeg';
     
+    // Apply adversarial noise if enabled
+    let finalImageBuffer: Buffer;
+    if (adversarialSettings?.enabled) {
+      console.log('Applying adversarial noise protection...');
+      
+      // Get the current image as buffer
+      const currentBuffer = isPNG ? await image.png().toBuffer() : await image.jpeg().toBuffer();
+      
+      // Apply adversarial noise
+      finalImageBuffer = await generateAdversarialNoise(currentBuffer, adversarialSettings);
+    } else {
+      // No adversarial noise, get buffer normally
+      finalImageBuffer = isPNG ? await image.png().toBuffer() : await image.jpeg().toBuffer();
+    }
+    
     // Create output path
     const outputFilename = `watermarked-${uuidv4()}.${extension}`;
     const outputPath = path.join(tempDir, outputFilename);
     
-    // Save the image
-    if (isPNG) {
-      await image.png().toFile(outputPath);
-    } else {
-      await image.jpeg().toFile(outputPath);
-    }
+    // Write the final buffer to file
+    fs.writeFileSync(outputPath, finalImageBuffer);
     
     return outputPath;
   } catch (error) {

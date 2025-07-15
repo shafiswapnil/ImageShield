@@ -15,10 +15,11 @@ Protect your images from AI training with visible watermarks and EXIF metadata t
 
 🔒 **Protection Methods**
 
-- Visible watermarking
-- EXIF metadata injection
-- Copyright tags
-- Artist attribution
+- **Adversarial Noise Protection** - Imperceptible perturbations that disrupt AI training
+- Visible watermarking with customizable positioning
+- EXIF metadata injection with copyright protection
+- Copyright tags and artist attribution
+- Multi-layer defense strategy
 
 ## Tech Stack
 
@@ -75,7 +76,7 @@ Your app will be running at:
 
 ### POST /api/process-image
 
-Process images with watermark and EXIF protection.
+Process images with watermark, EXIF protection, and adversarial noise.
 
 - Method: POST
 - Content-Type: multipart/form-data
@@ -86,6 +87,9 @@ Process images with watermark and EXIF protection.
   - opacity: number
   - fontSize: number
   - exifProtection: boolean
+  - adversarialEnabled: boolean
+  - adversarialIntensity: number (1-10)
+  - adversarialMethod: string ('gaussian' | 'uniform' | 'perlin')
 
 ### POST /api/extract-exif
 
@@ -98,13 +102,16 @@ Extract EXIF metadata from images.
 
 ### POST /api/add-exif
 
-Add protection metadata to images.
+Add protection metadata and adversarial noise to images.
 
 - Method: POST
 - Content-Type: multipart/form-data
 - Body:
   - image: File (JPG/PNG)
   - exifData: Object (optional)
+  - adversarialEnabled: boolean
+  - adversarialIntensity: number (1-10)
+  - adversarialMethod: string ('gaussian' | 'uniform' | 'perlin')
 
 ## Production Deployment
 
@@ -146,6 +153,39 @@ NODE_ENV=production npm start
 - EXIF metadata preservation
 - Copyright and artist tags
 - Custom watermark positioning
+
+### Adversarial Noise Protection
+
+**Revolutionary AI Training Defense**
+
+Our adversarial noise protection adds imperceptible mathematical perturbations to your images that disrupt neural network training while keeping images visually identical to humans.
+
+**How It Works:**
+
+- Applies carefully calculated noise patterns using advanced algorithms
+- Three protection methods: Gaussian (recommended), Uniform, and Perlin noise
+- Intensity levels 1-10 for customizable protection strength
+- Noise amplitude automatically calculated for optimal effectiveness
+
+**Protection Methods:**
+
+- **Gaussian Noise**: Most effective against CNN-based AI models
+- **Uniform Noise**: General-purpose protection for various AI architectures
+- **Perlin Noise**: Structured patterns that resist filtering attempts
+
+**Technical Details:**
+
+- Noise amplitude: 0.001-0.02 (intensity-dependent)
+- Applied at pixel level using Sharp image processing
+- Survives common image operations (resize, compression)
+- Mathematically designed to maximize AI training disruption
+
+**Usage:**
+
+- Enable via "AI Training Protection" toggle in the UI
+- Select protection method and intensity
+- Server-side processing ensures precise noise application
+- Combined with watermarks and EXIF for multi-layer defense
 
 ## Troubleshooting
 
